@@ -18,6 +18,8 @@ class transCookie:
         return itemDict
 
 if __name__ == "__main__":
-    cookie = "JSESSIONID=5DA43BB8C9A8774C18C507DBD695DBBA; __jsluid=c223b00964f5765206cef21adef5e02f; bdshare_firstime=1544702564332"
+    #Cookie: __jsluid=cfb4c27eac28206e7a066f61eecca3c6; bdshare_firstime=1538076489584; JSESSIONID=0DE9FF4B0BF25EAF0D0A20366E36BCE3
+
+    cookie = "__jsluid=cfb4c27eac28206e7a066f61eecca3c6; bdshare_firstime=1538076489584; JSESSIONID=0DE9FF4B0BF25EAF0D0A20366E36BCE3"
     trans = transCookie(cookie)
     print(trans.stringToDict())

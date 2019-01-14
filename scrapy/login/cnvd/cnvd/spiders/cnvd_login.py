@@ -15,10 +15,12 @@ class CnvdLoginSpider(scrapy.Spider):
     ]
 
     base_url = 'http://www.cnvd.org.cn'
+    file_name_hd = 'cnvd_xml_'
+    cnt = 0
+    head_url = 'http://www.cnvd.org.cn/shareData/list?max=10&offset='
 
     # 用来保持登录状态，可把chrome上拷贝下来的字符串形式cookie转化成字典形式，粘贴到此处
-    cookies = {'bdshare_firstime': '1544702564332', '__jsluid': 'c223b00964f5765206cef21adef5e02f', 'JSESSIONID': '5DA43BB8C9A8774C18C507DBD695DBBA'}
-
+    cookies = {'__jsluid': 'cfb4c27eac28206e7a066f61eecca3c6', 'bdshare_firstime': '1538076489584', 'JSESSIONID': '0DE9FF4B0BF25EAF0D0A20366E36BCE3'}
     # 发送给服务器的http头信息，有的网站需要伪装出浏览器头进行爬取，有的则不需要
     headers = {
         # 'Connection': 'keep - alive',
@@ -43,22 +45,36 @@ class CnvdLoginSpider(scrapy.Spider):
                              cookies=self.cookies, meta=self.meta)
 
     def cnvd_logins(self, response):
-        selector = Selector(response)  # 创建选择器
-        page_num = selector.xpath('//*[@id="patchList"]/div/span[3]/@data').extract_first()  # 取出所有页数
-        print(page_num)
-        # for item in page_num:
-        # 	print(item['data'])
+        # selector = Selector(response)  # 创建选择器
+        # page_num = selector.xpath('//*[@id="patchList"]/div/span[3]/@data').extract_first()  # 取出所有页数
+        # print(page_num)
+        
+        #http://www.cnvd.org.cn/shareData/list?max=10&offset=0
+        page_num = 22
+        for i in range(0, int(page_num)):
+            url = self.head_url + str(i*10)
+            yield Request(url, callback=self.find_url, headers=self.headers, cookies=self.cookies, meta=self.meta)
+
+    def find_url(self, response):
         soup = BeautifulSoup(response.text, 'lxml')
 
-        href_list = soup.find_all('a', href=re.compile("/shareData/download/"))
+        href_list = soup.find_all('a', href=re.compile("/shareData/download/"), title="下载xml")
+        count = 0
         for item in href_list:
-        	print(item['href'])
-        	download_url = self.base_url + item['href']
-        	print('download_url:' + download_url)
-        	download_url = 'http://nsclick.baidu.com/v.gif?pid=307&type=3075&l=1065981&t=295&s=867492&v=150&f=33000&r=http%3A%2F%2Fwww.cnvd.org.cn%2FshareData%2Flist%3Fmax%3D10%26offset%3D10&u=http%3A%2F%2Fwww.cnvd.org.cn%2FshareData%2Flist%3Fmax%3D10%26offset%3D20'
-        	urllib.request.urlretrieve(download_url, './xml')
-    #     yield Request(url, self.get_cnvd_detail)
+            #print(item['href'])
+            file = item.text
+            url = self.base_url + item['href']
+            print('#####file:%s, url:%s'%(file, url))
+            yield Request(url, callback=self.download_file, headers=self.headers, cookies=self.cookies, meta=self.meta)
 
-    # def get_cnvd_detail(self, response):
-    	#<a href="/shareData/download/505" title="下载xml">2018-12-03_2018-12-09.xml</a>
-        
+    def download_file(self, response):
+        self.cnt = self.cnt + 1
+        file_name = './xml/' + self.file_name_hd + str(self.cnt) + '.xml'
+        #print('file_name:', file_name)
+        #print('file_name:', self.file_name)
+        try:
+            with open(file_name, 'w') as f:
+                f.write(response.text)
+                print('####write file %s OK'%(file_name))
+        except:
+            print('##ERROR# write file %s failed'%(file_name))
